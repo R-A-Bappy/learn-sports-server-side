@@ -29,10 +29,11 @@ async function run() {
         await client.connect();
 
         const classesCollection = client.db('learnSportsDB').collection('classes');
+        const selectedClassCollection = client.db('learnSportsDB').collection('selectedClass');
 
-        app.post('/instructor/addClass', async (req, res) => {
-            const classData = req.body;
-            const result = await classesCollection.insertOne(classData);
+        // instructor part
+        app.get('/classes', async (req, res) => {
+            const result = await classesCollection.find().toArray();
             res.send(result);
         })
 
@@ -43,12 +44,18 @@ async function run() {
             res.send(result);
         })
 
-        app.get('/instructor/classes', async (req, res) => {
-            const result = await classesCollection.find().toArray();
+        app.post('/instructor/addClass', async (req, res) => {
+            const classData = req.body;
+            const result = await classesCollection.insertOne(classData);
             res.send(result);
         })
 
-
+        // student part
+        app.post('/selectedClass', async (req, res) => {
+            const classData = req.body;
+            const result = await selectedClassCollection.insertOne(classData);
+            res.send(result);
+        })
 
 
 
