@@ -13,7 +13,6 @@ app.use(express.json());
 
 const verifyJWT = (req, res, next) => {
     const authorization = req.headers.authorization;
-    console.log(authorization);
     if (!authorization) {
         return res.status(401).send({ error: true, message: 'unauthorized access' })
     }
@@ -81,7 +80,6 @@ async function run() {
 
         app.get('/users/adminInstructor/:email', async (req, res) => {
             const email = req.params.email;
-            console.log(email)
             // if (req.decoded.email !== email) {
             //     return res.send({ admin: false })
             // };
@@ -125,6 +123,20 @@ async function run() {
             const email = req.params.email;
             const query = { instructorEmail: email };
             const result = await classesCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        app.patch('/classes', async (req, res) => {
+            const id = req.query.id;
+            const status = req.query.status;
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    status: status
+                },
+            };
+
+            const result = await classesCollection.updateOne(filter, updateDoc);
             res.send(result);
         })
 
@@ -179,8 +191,12 @@ async function run() {
 
         app.post('/payments', async (req, res) => {
             const payment = req.body;
-            const result = await paymentCollection.insertOne(payment);
-            res.send(result);
+            const paymentResult = await paymentCollection.insertOne(payment);
+            const id = payment.classData.classId;
+            const filter = { _id: new ObjectId(id) };
+            const update = { $inc: { seats: -1 } };
+            const updateResult = await classesCollection.updateOne(filter, update);
+            res.send({ paymentResult, updateResult });
         })
 
         app.get('/payments/:email', async (req, res) => {
