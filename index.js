@@ -4,6 +4,7 @@ const cors = require('cors');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 var jwt = require('jsonwebtoken');
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 app.use(cors());
@@ -12,6 +13,7 @@ app.use(express.json());
 
 const verifyJWT = (req, res, next) => {
     const authorization = req.headers.authorization;
+    console.log(authorization);
     if (!authorization) {
         return res.status(401).send({ error: true, message: 'unauthorized access' })
     }
@@ -48,6 +50,7 @@ async function run() {
         const classesCollection = client.db('learnSportsDB').collection('classes');
         const selectedClassCollection = client.db('learnSportsDB').collection('selectedClass');
         const usersCollection = client.db('learnSportsDB').collection('users');
+        const paymentCollection = client.db('learnSportsDB').collection('payments');
 
 
 
@@ -74,6 +77,18 @@ async function run() {
                 res.send(result);
             }
 
+        })
+
+        app.get('/users/adminInstructor/:email', async (req, res) => {
+            const email = req.params.email;
+            console.log(email)
+            // if (req.decoded.email !== email) {
+            //     return res.send({ admin: false })
+            // };
+
+            const query = { email: email };
+            const result = await usersCollection.findOne(query);
+            res.send(result);
         })
 
         app.patch('/users/admin/:id', async (req, res) => {
@@ -147,7 +162,26 @@ async function run() {
             res.send(result);
         })
 
+        // payment intent
+        app.post("/create-payment-intent", async (req, res) => {
+            const { price } = req.body;
+            const amount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ['card']
+            });
 
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
+
+        app.post('/payments', async (req, res) => {
+            const payment = req.body;
+            const result = await paymentCollection.insertOne(payment);
+            res.send(result);
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
