@@ -129,13 +129,24 @@ async function run() {
         app.patch('/classes', async (req, res) => {
             const id = req.query.id;
             const status = req.query.status;
+            const { feedback } = req.body;
+            console.log(feedback, status)
             const filter = { _id: new ObjectId(id) };
-            const updateDoc = {
-                $set: {
-                    status: status
-                },
-            };
-
+            let updateDoc;
+            if (status) {
+                updateDoc = {
+                    $set: {
+                        status: status
+                    },
+                };
+            }
+            else {
+                updateDoc = {
+                    $set: {
+                        feedback: feedback
+                    },
+                };
+            }
             const result = await classesCollection.updateOne(filter, updateDoc);
             res.send(result);
         })
@@ -192,7 +203,7 @@ async function run() {
         app.post('/payments', async (req, res) => {
             const payment = req.body;
             const paymentResult = await paymentCollection.insertOne(payment);
-            const id = payment.classData.classId;
+            const id = payment.classId;
             const filter = { _id: new ObjectId(id) };
             const update = { $inc: { seats: -1 } };
             const updateResult = await classesCollection.updateOne(filter, update);
@@ -207,6 +218,14 @@ async function run() {
             }
             const result = await paymentCollection.find(query, options).toArray();
             res.send(result);
+        })
+
+        app.get('/payments/enroll/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id)
+            const query = { classId: id };
+            const result = await paymentCollection.countDocuments(query);
+            res.send({ result });
         })
 
         // Send a ping to confirm a successful connection
