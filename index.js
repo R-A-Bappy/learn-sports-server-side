@@ -115,7 +115,14 @@ async function run() {
 
         // instructor part
         app.get('/classes', async (req, res) => {
-            const result = await classesCollection.find().toArray();
+            const sort = { enroll: -1 };
+            const result = await classesCollection.find().sort(sort).toArray();
+            res.send(result);
+        })
+
+        app.get('/instructors', async (req, res) => {
+            const query = { role: 'instructor' }
+            const result = await usersCollection.find(query).toArray();
             res.send(result);
         })
 
@@ -130,7 +137,6 @@ async function run() {
             const id = req.query.id;
             const status = req.query.status;
             const { feedback } = req.body;
-            console.log(feedback, status)
             const filter = { _id: new ObjectId(id) };
             let updateDoc;
             if (status) {
@@ -205,7 +211,7 @@ async function run() {
             const paymentResult = await paymentCollection.insertOne(payment);
             const id = payment.classId;
             const filter = { _id: new ObjectId(id) };
-            const update = { $inc: { seats: -1 } };
+            const update = { $inc: { seats: -1, enroll: 1 } };
             const updateResult = await classesCollection.updateOne(filter, update);
             res.send({ paymentResult, updateResult });
         })
@@ -222,7 +228,6 @@ async function run() {
 
         app.get('/payments/enroll/:id', async (req, res) => {
             const id = req.params.id;
-            console.log(id)
             const query = { classId: id };
             const result = await paymentCollection.countDocuments(query);
             res.send({ result });
